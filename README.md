@@ -2,11 +2,12 @@
 Write and Read data to Exosite Cloud using Tiva Connected Launchpad + CC3100 BP + Sensor Hub BP, Connects to AP through WiFi
 
  * Maker/Author - Markel T. Robregado
+ * Modifications - Richard Carpenter
  *
- * Modification Details : Write and read data to Exosite.
- *                        Sends Temperature data from TMP006 sensor to Exosite Cloud
- *                        Sends switch press count to Exosite Cloud
- *                        on-board led on-off, from Exosite Dashboard Switches
+ * Modification Details : Rebuilt using TivaWare_C_Series-2.1.2.111 and CC3100SDK_1.2.0
+ * Added Sensor data for BMP180 (Pressure and Temperature) and (SHT21 Humidity and Temperature)
+ * Created functions for reading sensor data (for adding more sensors)
+ * Increased Clock frequency to 120MHz
  *                        
  * Device Setup: Tiva Connected Launchpad + CC3100 Booster pack + Sensor Hub Booster Pack
  *
@@ -22,7 +23,7 @@ Install CC3100 SDK, and Tivaware at your PC. AT CCS Project Properties, set memo
 
 
 SSID_NAME, SEC_TYPE, PASSKEY should be updated as per AP details at sl_common.h. 
-File Location: C:\ti\CC3100SDK_1.1.0\cc3100-sdk\examples\common\sl_common.h 
+File Location: C:\ti\CC3100SDK_1.2.0\cc3100-sdk\examples\common\sl_common.h 
 
 Set your CIK at exosite.c
 
