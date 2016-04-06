@@ -381,6 +381,7 @@ Timer1BaseIntHandler(void)  // function for name change
 	//
 	if(BUTTON_PRESSED(USR_SW2, ui8Buttons, ui8ButtonsChanged))
 	{
+		// Reset the system
 	    SysCtlReset();
 	}
 
