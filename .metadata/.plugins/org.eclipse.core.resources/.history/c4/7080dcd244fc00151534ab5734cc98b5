@@ -184,10 +184,10 @@ static _i32 checkLanConnection();
 static _i32 initializeAppVariables();
 static void displayBanner();
 
-static void configTmp006(void);
-static void configBmp180(void);
-static void configSht21(void);
-static void configIsl29023(void);
+static void configTmp006();
+static void configBmp180();
+static void configSht21();
+static void configIsl29023();
 
 /*
  * STATIC FUNCTION DEFINITIONS -- End
@@ -292,6 +292,7 @@ TMP006AppErrorHandler(char *pcFilename, uint_fast32_t ui32Line)
         ROM_SysCtlSleep();
     }
 
+    //SysCtlReset();
 }
 
 //*****************************************************************************
@@ -381,7 +382,7 @@ Timer1BaseIntHandler(void)  // function for name change
 	//
 	if(BUTTON_PRESSED(USR_SW2, ui8Buttons, ui8ButtonsChanged))
 	{
-	    SysCtlReset();
+	    SW2_Pressed();
 	}
 
     //
@@ -459,8 +460,6 @@ void SimpleLinkWlanEventHandler(SlWlanEvent_t *pWlanEvent)
             UARTprintf(" [WLAN EVENT] Unexpected event \n\r");
         }
         break;
-
-        SysCtlReset();
     }
 }
 
@@ -582,12 +581,11 @@ void SimpleLinkSockEventHandler(SlSockEvent_t *pSock)
      * This application doesn't work w/ socket - Hence not handling these events
      */
     UARTprintf(" [SOCK EVENT] Unexpected event \n\r");
-
-    SysCtlReset();
 }
 /*
  * ASYNCHRONOUS EVENT HANDLERS -- End
  */
+
 
 /*
  * Application's entry point

@@ -381,7 +381,7 @@ Timer1BaseIntHandler(void)  // function for name change
 	//
 	if(BUTTON_PRESSED(USR_SW2, ui8Buttons, ui8ButtonsChanged))
 	{
-	    SysCtlReset();
+	    SW2_Pressed();
 	}
 
     //
@@ -1122,7 +1122,7 @@ SHT21AppI2CWait(char *pcFilename, uint_fast32_t ui32Line)
     {
         ROM_SysCtlSleep();
     }
-
+SOCK
     //
     // If an error occurred call the error handler immediately.
     //
