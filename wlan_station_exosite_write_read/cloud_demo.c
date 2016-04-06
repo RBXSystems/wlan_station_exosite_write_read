@@ -28,16 +28,28 @@
 #include "driverlib/sysctl.h"
 #include "drivers/pinout.h"
 #include "utils/uartstdio.h"
+#include "sensorlib/hw_sht21.h"
 #include "sensorlib/i2cm_drv.h"
 #include "sensorlib/tmp006.h"
+#include "sensorlib/bmp180.h"
+#include "sensorlib/sht21.h"
+#include "sensorlib/isl29023.h"
 
-#define TEMP_ALIAS          "sensortemp"
+#define TEMP_ALIAS          "tmp006"
+#define BMPT_ALIAS           "bmp180_T"
+#define BMPP_ALIAS           "bmp180_P"
+#define SHTT_ALIAS           "sht21_T"
+#define SHTH_ALIAS           "sht21_H"
+#define ISL_ALIAS           "isl29023"
 #define LED2_ALIAS          "ledd2"
 #define LED3_ALIAS          "ledd3"
 #define SW1_ALIAS           "usrsw1"
 #define SW2_ALIAS           "usrsw2"
 
-#define TEMP_ALIAS_LENGTH          10
+#define TEMP_ALIAS_LENGTH          12
+#define BMP_ALIAS_LENGTH           16
+#define SHT_ALIAS_LENGTH           16
+#define SHT_ALIAS_LENGTH           16
 #define LED2_ALIAS_LENGTH          5
 #define LED3_ALIAS_LENGTH          5
 #define SW1_ALIAS_LENGTH           6
@@ -45,6 +57,28 @@
 
 // Global instance structure for the TMP006 sensor driver.
 extern tTMP006 g_sTMP006Inst;
+
+//*****************************************************************************
+//
+// Global instance structure for the BMP180 sensor driver.
+//
+//*****************************************************************************
+extern tBMP180 g_sBMP180Inst;
+
+//*****************************************************************************
+//
+// Global instance structure for the SHT21 sensor driver.
+//
+//*****************************************************************************
+extern tSHT21 g_sSHT21Inst;
+
+//*****************************************************************************
+//
+// Global instance structure for the ISL29023 sensor driver.
+//
+//*****************************************************************************
+tISL29023 g_sISL29023Inst;
+
 extern unsigned long ui32SysClock;
 extern unsigned long g_Status;
 
@@ -57,6 +91,9 @@ extern volatile uint_fast8_t g_vui8DataFlag;
 extern volatile uint_fast8_t g_vui8ErrorFlag;
 
 extern void TMP006AppErrorHandler(char *pcFilename, uint_fast32_t ui32Line);
+
+char post_str[512];
+int post_len = 0;
 
 /*****************************************************************************
 *
@@ -183,7 +220,7 @@ void Cloud_Read(void)
 		{
 			LEDWrite(CLP_D2, ~CLP_D2);
 		}
-		UARTprintf(" Exosite Read:  %s=%d\r\n", LED2_ALIAS, switch1_data);
+		//UARTprintf(" Exosite Read:  %s=%d\r\n", LED2_ALIAS, switch1_data);
 	}
 
 	Read_status = exosite_read("ledd3", ledx, 10, &response_length);
@@ -199,7 +236,7 @@ void Cloud_Read(void)
 		{
 			LEDWrite(CLP_D3, ~CLP_D3);
 		}
-		UARTprintf(" Exosite Read:  %s=%d\r\n", LED3_ALIAS, switch2_data);
+		//UARTprintf(" Exosite Read:  %s=%d\r\n", LED3_ALIAS, switch2_data);
 	}
 }
 
@@ -216,83 +253,21 @@ void Cloud_Read(void)
 *****************************************************************************/
 void Report_Sensors(void)
 {
-	char post_str[200];
-	int post_len = 0;
-	float fAmbient, fObject;
-    int_fast32_t i32IntegerPart;
-    int_fast32_t i32FractionPart;
+	post_str[512];
+	post_len = 0;
 
-	//
-	// Put the processor to sleep while we wait for the TMP006 to
-	// signal that data is ready.  Also continue to sleep while I2C
-	// transactions get the raw data from the TMP006
-	//
+	readTmp006Data();
 
-	while((g_vui8DataFlag == 0) && (g_vui8ErrorFlag == 0))
-	{
-		//ROM_SysCtlSleep();
-	}
+	readBmp180Data();
+
+	readSht21Data();
 
 
-	//
-	// If an error occurred call the error handler immediately.
-	//
-	if(g_vui8ErrorFlag)
-	{
-		TMP006AppErrorHandler(__FILE__, __LINE__);
-	}
-
-	//
-	// Reset the flag
-	//
-	g_vui8DataFlag = 0;
-
-	//
-	// Get a local copy of the latest data in float format.
-	//
-	TMP006DataTemperatureGetFloat(&g_sTMP006Inst, &fAmbient, &fObject);
-
-    // Convert the floating point ambient temperature  to an integer part
-    // and fraction part for easy printing.
-    //
-    i32IntegerPart = (int32_t)fAmbient;
-    i32FractionPart = (int32_t)(fAmbient * 1000.0f);
-    i32FractionPart = i32FractionPart - (i32IntegerPart * 1000);
-    if(i32FractionPart < 0)
-    {
-        i32FractionPart *= -1;
-    }
-
-	memcpy(&post_str[post_len], SW1_ALIAS, SW1_ALIAS_LENGTH);
-	post_len += strlen(SW1_ALIAS);
-	post_str[post_len] = '=';
-	post_len++;
-	sprintf(&post_str[post_len], "%d", (char)sw1_button_on);
-
-	post_len = strlen(post_str);
-	post_str[post_len] = '&';
-	post_len++;
-
-	memcpy(&post_str[post_len], SW2_ALIAS, SW2_ALIAS_LENGTH);
-	post_len += strlen(SW2_ALIAS);
-	post_str[post_len] = '=';
-	post_len++;
-	sprintf(&post_str[post_len], "%d", (char)sw2_button_on);
-
-	post_len = strlen(post_str);
-	post_str[post_len] = '&';
-	post_len++;
-
-	//last
-	memcpy(&post_str[post_len], TEMP_ALIAS, TEMP_ALIAS_LENGTH);
-	post_len += strlen(TEMP_ALIAS);
-	post_str[post_len] = '=';
-	post_len++;
-	post_len += snprintf(&post_str[post_len], 10, "%2d.%02d", i32IntegerPart, i32FractionPart);
-
-	UARTprintf(" Exosite Write: %s\r\n", post_str);
+	//UARTprintf(" Exosite Write: %s\r\n", post_str);
+	UARTprintf(".");
 
 	exosite_write(post_str, post_len);
+
 
 }
 
@@ -365,4 +340,334 @@ void cloud_demo(void)
 		interval_counter++;
 	}
 }
+
+void readTmp006Data(void)
+{
+	float fAmbient, fObject;
+    int_fast32_t i32IntegerPart;
+    int_fast32_t i32FractionPart;
+
+	//
+	// Put the processor to sleep while we wait for the TMP006 to
+	// signal that data is ready.  Also continue to sleep while I2C
+	// transactions get the raw data from the TMP006
+	//
+
+	while((g_vui8DataFlag == 0) && (g_vui8ErrorFlag == 0))
+	{
+		//ROM_SysCtlSleep();
+	}
+
+
+	//
+	// If an error occurred call the error handler immediately.
+	//
+	if(g_vui8ErrorFlag)
+	{
+		TMP006AppErrorHandler(__FILE__, __LINE__);
+	}
+
+	//
+	// Reset the flag
+	//
+	g_vui8DataFlag = 0;
+
+	//
+	// Get a local copy of the latest data in float format.
+	//
+	TMP006DataTemperatureGetFloat(&g_sTMP006Inst, &fAmbient, &fObject);
+
+    // Convert the floating point ambient temperature  to an integer part
+    // and fraction part for easy printing.
+    //
+    i32IntegerPart = (int32_t)fAmbient;
+    i32FractionPart = (int32_t)(fAmbient * 1000.0f);
+    i32FractionPart = i32FractionPart - (i32IntegerPart * 1000);
+    if(i32FractionPart < 0)
+    {
+        i32FractionPart *= -1;
+    }
+
+	memcpy(&post_str[post_len], SW1_ALIAS, SW1_ALIAS_LENGTH);
+	post_len += strlen(SW1_ALIAS);
+	post_str[post_len] = '=';
+	post_len++;
+	sprintf(&post_str[post_len], "%d", (char)sw1_button_on);
+
+	post_len = strlen(post_str);
+	post_str[post_len] = '&';
+	post_len++;
+
+	memcpy(&post_str[post_len], SW2_ALIAS, SW2_ALIAS_LENGTH);
+	post_len += strlen(SW2_ALIAS);
+	post_str[post_len] = '=';
+	post_len++;
+	sprintf(&post_str[post_len], "%d", (char)sw2_button_on);
+
+	post_len = strlen(post_str);
+	post_str[post_len] = '&';
+	post_len++;
+
+	//last
+	memcpy(&post_str[post_len], TEMP_ALIAS, TEMP_ALIAS_LENGTH);
+	post_len += strlen(TEMP_ALIAS);
+	post_str[post_len] = '=';
+	post_len++;
+	post_len += snprintf(&post_str[post_len], 10, "%2d.%02d", i32IntegerPart, i32FractionPart);
+
+	post_len = strlen(post_str);
+	post_str[post_len] = '&';
+	post_len++;
+
+}
+
+void readBmp180Data(void)
+{
+    float fTemperature, fPressure, fAltitude;
+    int32_t i32IntegerPart;
+    int32_t i32FractionPart;
+
+    //
+    // The reads are started by SysTick Interrupt, we poll here to detect
+    // when a read is complete.
+    //
+    while(g_vui8DataFlag == 0)
+    {
+        //
+        // Wait for the new data set to be available.
+        //
+    }
+
+    //
+    // Reset the data ready flag.
+    //
+    g_vui8DataFlag = 0;
+
+    //
+    // Get a local copy of the latest temperature and pressure data in
+    // float format.
+    //
+    BMP180DataTemperatureGetFloat(&g_sBMP180Inst, &fTemperature);
+    BMP180DataPressureGetFloat(&g_sBMP180Inst, &fPressure);
+
+    //
+    // Convert the temperature to an integer part and fraction part for
+    // easy print.
+    //
+    i32IntegerPart = (int32_t) fTemperature;
+    i32FractionPart =(int32_t) (fTemperature * 1000.0f);
+    i32FractionPart = i32FractionPart - (i32IntegerPart * 1000);
+    if(i32FractionPart < 0)
+    {
+        i32FractionPart *= -1;
+    }
+
+	memcpy(&post_str[post_len], BMPT_ALIAS, BMP_ALIAS_LENGTH);
+	post_len += strlen(BMPT_ALIAS);
+	post_str[post_len] = '=';
+	post_len++;
+	post_len += snprintf(&post_str[post_len], 10, "%2d.%02d", i32IntegerPart, i32FractionPart);
+
+	post_len = strlen(post_str);
+	post_str[post_len] = '&';
+	post_len++;
+
+    //
+    // Print temperature with three digits of decimal precision.
+    //
+    //UARTprintf(" Temperature %3d.%03d\n", i32IntegerPart,
+    //           i32FractionPart);
+
+    //
+    // Convert the pressure to an integer part and fraction part for
+    // easy print.
+    //
+    i32IntegerPart = (int32_t) fPressure;
+    i32FractionPart =(int32_t) (fPressure * 1000.0f);
+    i32FractionPart = i32FractionPart - (i32IntegerPart * 1000);
+    if(i32FractionPart < 0)
+    {
+        i32FractionPart *= -1;
+    }
+
+	memcpy(&post_str[post_len], BMPP_ALIAS, BMP_ALIAS_LENGTH);
+	post_len += strlen(BMPP_ALIAS);
+	post_str[post_len] = '=';
+	post_len++;
+	post_len += snprintf(&post_str[post_len], 10, "%2d.%02d", i32IntegerPart, i32FractionPart);
+
+	post_len = strlen(post_str);
+	post_str[post_len] = '&';
+	post_len++;
+
+    //
+    // Print Pressure with three digits of decimal precision.
+    //
+    //UARTprintf(" Pressure %3d.%03d\n", i32IntegerPart, i32FractionPart);
+
+    //
+    // Calculate the altitude.
+    //
+    //fAltitude = 44330.0f * (1.0f - powf(fPressure / 101325.0f,
+    //                                    1.0f / 5.255f));
+
+    //
+    // Convert the altitude to an integer part and fraction part for easy
+    // print.
+    //
+    //i32IntegerPart = (int32_t) fAltitude;
+    //i32FractionPart =(int32_t) (fAltitude * 1000.0f);
+    //i32FractionPart = i32FractionPart - (i32IntegerPart * 1000);
+    //if(i32FractionPart < 0)
+    //{
+    //    i32FractionPart *= -1;
+    //}
+
+    //
+    // Print altitude with three digits of decimal precision.
+    //
+    //UARTprintf(" Altitude %3d.%03d", i32IntegerPart, i32FractionPart);
+
+    //
+    // Print new line.
+    //
+    //UARTprintf("\n");
+}
+
+void readSht21Data(void)
+{
+    float fTemperature, fHumidity;
+    int32_t i32IntegerPart;
+    int32_t i32FractionPart;
+
+    //
+    // Write the command to start a humidity measurement.
+    //
+    SHT21Write(&g_sSHT21Inst, SHT21_CMD_MEAS_RH, g_sSHT21Inst.pui8Data, 0,
+            SHT21AppCallback, &g_sSHT21Inst);
+
+    //
+    // Wait for the I2C transactions to complete before moving forward.
+    //
+    SHT21AppI2CWait(__FILE__, __LINE__);
+
+    //
+    // Wait 33 milliseconds before attempting to get the result. Datasheet
+    // claims this can take as long as 29 milliseconds.
+    //
+    ROM_SysCtlDelay(ui32SysClock / (30 * 3));
+
+    //
+    // Get the raw data from the sensor over the I2C bus.
+    //
+    SHT21DataRead(&g_sSHT21Inst, SHT21AppCallback, &g_sSHT21Inst);
+
+    //
+    // Wait for the I2C transactions to complete before moving forward.
+    //
+    SHT21AppI2CWait(__FILE__, __LINE__);
+
+    //
+    // Get a copy of the most recent raw data in floating point format.
+    //
+    SHT21DataHumidityGetFloat(&g_sSHT21Inst, &fHumidity);
+
+    //
+    // Write the command to start a temperature measurement.
+    //
+    SHT21Write(&g_sSHT21Inst, SHT21_CMD_MEAS_T, g_sSHT21Inst.pui8Data, 0,
+            SHT21AppCallback, &g_sSHT21Inst);
+
+    //
+    // Wait for the I2C transactions to complete before moving forward.
+    //
+    SHT21AppI2CWait(__FILE__, __LINE__);
+
+    //
+    // Wait 100 milliseconds before attempting to get the result. Datasheet
+    // claims this can take as long as 85 milliseconds.
+    //
+    ROM_SysCtlDelay(ui32SysClock / (10 * 3));
+
+    //
+    // Read the conversion data from the sensor over I2C.
+    //
+    SHT21DataRead(&g_sSHT21Inst, SHT21AppCallback, &g_sSHT21Inst);
+
+    //
+    // Wait for the I2C transactions to complete before moving forward.
+    //
+    SHT21AppI2CWait(__FILE__, __LINE__);
+
+    //
+    // Get the most recent temperature result as a float in celcius.
+    //
+    SHT21DataTemperatureGetFloat(&g_sSHT21Inst, &fTemperature);
+
+    //
+    // Convert the floats to an integer part and fraction part for easy
+    // print. Humidity is returned as 0.0 to 1.0 so multiply by 100 to get
+    // percent humidity.
+    //
+    fHumidity *= 100.0f;
+    i32IntegerPart = (int32_t) fHumidity;
+    i32FractionPart = (int32_t) (fHumidity * 1000.0f);
+    i32FractionPart = i32FractionPart - (i32IntegerPart * 1000);
+    if(i32FractionPart < 0)
+    {
+        i32FractionPart *= -1;
+    }
+
+	memcpy(&post_str[post_len], SHTH_ALIAS, SHT_ALIAS_LENGTH);
+	post_len += strlen(SHTH_ALIAS);
+	post_str[post_len] = '=';
+	post_len++;
+	post_len += snprintf(&post_str[post_len], 10, "%2d.%02d", i32IntegerPart, i32FractionPart);
+
+	post_len = strlen(post_str);
+	post_str[post_len] = '&';
+	post_len++;
+    //
+    // Print the humidity value using the integers we just created.
+    //
+    //UARTprintf(" Humidity %3d.%03d\n", i32IntegerPart, i32FractionPart);
+
+    //
+    // Perform the conversion from float to a printable set of integers.
+    //
+    i32IntegerPart = (int32_t) fTemperature;
+    i32FractionPart = (int32_t) (fTemperature * 1000.0f);
+    i32FractionPart = i32FractionPart - (i32IntegerPart * 1000);
+    if(i32FractionPart < 0)
+    {
+        i32FractionPart *= -1;
+    }
+
+	memcpy(&post_str[post_len], SHTT_ALIAS, SHT_ALIAS_LENGTH);
+	post_len += strlen(SHTT_ALIAS);
+	post_str[post_len] = '=';
+	post_len++;
+	post_len += snprintf(&post_str[post_len], 10, "%2d.%02d", i32IntegerPart, i32FractionPart);
+
+
+    //
+    // Print the temperature as integer and fraction parts.
+    //
+    //UARTprintf(" Temperature %3d.%03d\n", i32IntegerPart, i32FractionPart);
+
+    //
+    // Delay for one second. This is to keep sensor duty cycle
+    // to about 10% as suggested in the datasheet, section 2.4.
+    // This minimizes self heating effects and keeps reading more accurate.
+    //
+    ROM_SysCtlDelay(ui32SysClock / 3);
+}
+
+//*****************************************************************************
+//
+// SHT21 Sensor callback function.  Called at the end of SHT21 sensor driver
+// transactions. This is called from I2C interrupt context. Therefore, we just
+// set a flag and let main do the bulk of the computations and display.
+//
+//*****************************************************************************
 

@@ -5,10 +5,9 @@
 // Connects to AP through WiFi
 //
 // Maker/Author - Markel T. Robregado *
+// Modifications - Richard Carpenter
 // Modification Details : Write and read data to Exosite.
-// Sends Temperature data from TMP006 sensor to Exosite Cloud
-// Sends switch press count to Exosite Cloud
-// on-board led on-off, from Exosite Dashboard Switches
+// Added readTmp006Data, readBmp180Data and readSht21Data functions
 //
 // Device Setup: Tiva Connected Launchpad + CC3100 Booster pack + Sensor Hub Booster Pack 
 //
@@ -21,5 +20,11 @@ void SW1_Pressed(void);
 void SW2_Pressed(void);
 void Demo_Tick(void);
 void cloud_demo(void);
+
+void readTmp006Data(void);
+void readBmp180Data(void);
+void readSht21Data(void);
+
+void SHT21AppCallback(void *pvCallbackData, uint_fast8_t ui8Status);
 
 #endif /* CLOUD_DEMO_H_ */

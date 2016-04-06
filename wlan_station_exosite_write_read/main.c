@@ -47,11 +47,11 @@
  * Write and Read data to Exosite Cloud using Tiva Connected Launchpad + CC3100 BP + Sensor Hub BP,
  * Connects to AP through WiFi
  *
- * Maker/Author - Markel T. Robregado 
- * Modification Details : Write and read data to Exosite.
- * Sends Temperature data from TMP006 sensor to Exosite Cloud
- * Sends switch press count to Exosite Cloud
- * on-board led on-off, from Exosite Dashboard Switches
+ * Maker/Author - Markel T. Robregado
+ * Modifications - Richard Carpenter
+ * Modification Details : Updated clock speed to 120MHz
+ * Added sensor data for BMP180 (pressure and temperature)
+ * Added sensor data for SHT21 (humidity and temperature)
  *
  * Device Setup: Tiva Connected Launchpad + CC3100 Booster pack + Sensor Hub Booster Pack 
  *
@@ -79,10 +79,16 @@
 #include "utils/uartstdio.h"
 #include "drivers/buttons.h"
 #include "sensorlib/hw_tmp006.h"
-#include "sensorlib/i2cm_drv.h"
-#include "sensorlib/tmp006.h"
+#include "sensorlib/hw_bmp180.h"
+#include "sensorlib/hw_sht21.h"
 
-#define APPLICATION_VERSION "1.0.0"
+#include "sensorlib/i2cm_drv.h"
+
+#include "sensorlib/tmp006.h"
+#include "sensorlib/bmp180.h"
+#include "sensorlib/sht21.h"
+
+#define APPLICATION_VERSION "1.1.0"
 
 #define SL_STOP_TIMEOUT        0xFF
 
@@ -115,20 +121,50 @@ typedef enum{
 // Define TMP006 I2C Address.
 #define TMP006_I2C_ADDRESS      0x41
 
+//*****************************************************************************
+//
+// Define BMP180 I2C Address.
+//
+//*****************************************************************************
+#define BMP180_I2C_ADDRESS      0x77
+
+//*****************************************************************************
+//
+// Define SHT21 I2C Address.
+//
+//*****************************************************************************
+#define SHT21_I2C_ADDRESS  0x40
+
 /*
  * GLOBAL VARIABLES -- Start
  */
 _u32 g_Status = 0;
 _u32  g_PingPacketsRecv = 0;
 _u32  g_GatewayIP = 0;
-_u32  ui32SysClock = 0;
+_u32  ui32SysClock = 60000000;
 _u8 ui8Buttons = 0;
 _u8 ui8ButtonsChanged = 0;
 
 // Global instance structure for the I2C master driver.
 tI2CMInstance g_sI2CInst;
+
 // Global instance structure for the TMP006 sensor driver.
 tTMP006 g_sTMP006Inst;
+
+//*****************************************************************************
+//
+// Global instance structure for the BMP180 sensor driver.
+//
+//*****************************************************************************
+tBMP180 g_sBMP180Inst;
+
+//*****************************************************************************
+//
+// Global instance structure for the SHT21 sensor driver.
+//
+//*****************************************************************************
+tSHT21 g_sSHT21Inst;
+
 // Global new data flag to alert main that TMP006 data is ready.
 volatile uint_fast8_t g_vui8DataFlag;
 // Global new error flag to store the error condition if encountered.
@@ -147,6 +183,12 @@ static _i32 establishConnectionWithAP();
 static _i32 checkLanConnection();
 static _i32 initializeAppVariables();
 static void displayBanner();
+
+static void configTmp006();
+static void configBmp180();
+static void configSht21();
+static void configIsl29023();
+
 /*
  * STATIC FUNCTION DEFINITIONS -- End
  */
@@ -172,6 +214,50 @@ TMP006AppCallback(void *pvCallbackData, uint_fast8_t ui8Status)
 
     //
     // Store the most recent status in case it was an error condition
+    //
+    g_vui8ErrorFlag = ui8Status;
+}
+
+//*****************************************************************************
+//
+// BMP180 Sensor callback function.  Called at the end of BMP180 sensor driver
+// transactions. This is called from I2C interrupt context. Therefore, we just
+// set a flag and let main do the bulk of the computations and display.
+//
+//*****************************************************************************
+void BMP180AppCallback(void* pvCallbackData, uint_fast8_t ui8Status)
+{
+    //
+    // If the transaction was successful then set the data ready flag.
+    if(ui8Status == I2CM_STATUS_SUCCESS)
+    {
+        g_vui8DataFlag = 1;
+    }
+
+}
+
+//*****************************************************************************
+//
+// SHT21 Sensor callback function.  Called at the end of SHT21 sensor driver
+// transactions. This is called from I2C interrupt context. Therefore, we just
+// set a flag and let main do the bulk of the computations and display.
+//
+//*****************************************************************************
+void
+SHT21AppCallback(void *pvCallbackData, uint_fast8_t ui8Status)
+{
+
+    //
+    // If the transaction succeeded set the data flag to indicate to
+    // application that this transaction is complete and data may be ready.
+    //
+    if(ui8Status == I2CM_STATUS_SUCCESS)
+    {
+        g_vui8DataFlag = 1;
+    }
+
+    //
+    // Store the most recent status in case it was an error condition.
     //
     g_vui8ErrorFlag = ui8Status;
 }
@@ -205,6 +291,8 @@ TMP006AppErrorHandler(char *pcFilename, uint_fast32_t ui32Line)
     {
         ROM_SysCtlSleep();
     }
+
+    //SysCtlReset();
 }
 
 //*****************************************************************************
@@ -296,6 +384,12 @@ Timer1BaseIntHandler(void)  // function for name change
 	{
 	    SW2_Pressed();
 	}
+
+    //
+    // Start a read of data from the pressure sensor. BMP180AppCallback is
+    // called when the read is complete.
+    //
+    BMP180DataRead(&g_sBMP180Inst, BMP180AppCallback, &g_sBMP180Inst);
 }
 
 
@@ -509,7 +603,7 @@ int main(int argc, char** argv)
 
     ui32SysClock = MAP_SysCtlClockFreqSet((SYSCTL_XTAL_25MHZ |
                                            SYSCTL_OSC_MAIN | SYSCTL_USE_PLL |
-                                           SYSCTL_CFG_VCO_480), 60000000);
+                                           SYSCTL_CFG_VCO_480), 120000000);
 
     //
     // Enable interrupts to the processor.
@@ -570,6 +664,19 @@ int main(int argc, char** argv)
 	TimerIntRegister(TIMER1_BASE, TIMER_A, Timer1BaseIntHandler);
 	ROM_TimerLoadSet(TIMER1_BASE, TIMER_A, ui32SysClock / (100 * 3)); // 10 ms timer button debouncing
 
+    //
+    // Initialize I2C peripheral.
+    //
+    // For BoosterPack 2 interface use I2C8
+    //
+    I2CMInit(&g_sI2CInst, I2C7_BASE, INT_I2C7, 0xff, 0xff, ui32SysClock);
+
+    configTmp006();
+
+    configBmp180();
+
+    configSht21();
+
 	//
 	// Setup the interrupts for the timer timeouts.
 	//
@@ -580,76 +687,6 @@ int main(int argc, char** argv)
 	// Enable the timers.
 	//
 	ROM_TimerEnable(TIMER1_BASE, TIMER_A);
-
-    //
-    // Initialize I2C peripheral.
-    //
-    // For BoosterPack 2 interface use I2C8
-    //
-    I2CMInit(&g_sI2CInst, I2C7_BASE, INT_I2C7, 0xff, 0xff, ui32SysClock);
-
-    //
-    // Initialize the TMP006
-    //
-    TMP006Init(&g_sTMP006Inst, &g_sI2CInst, TMP006_I2C_ADDRESS,
-               TMP006AppCallback, &g_sTMP006Inst);
-
-    //
-    // Put the processor to sleep while we wait for the I2C driver to
-    // indicate that the transaction is complete.
-    //
-    while((g_vui8DataFlag == 0) && (g_vui8ErrorFlag == 0))
-    {
-        //ROM_SysCtlSleep();
-    }
-
-    //
-    // If an error occurred call the error handler immediately.
-    //
-    if(g_vui8ErrorFlag)
-    {
-        TMP006AppErrorHandler(__FILE__, __LINE__);
-    }
-
-    //
-    // clear the data flag for next use.
-    //
-    g_vui8DataFlag = 0;
-
-    //
-    // Delay for 10 milliseconds for TMP006 reset to complete.
-    // Not explicitly required. Datasheet does not say how long a reset takes.
-    //
-    ROM_SysCtlDelay(ui32SysClock / (100 * 3));
-
-    //
-    // Enable the DRDY pin indication that a conversion is in progress.
-    //
-    TMP006ReadModifyWrite(&g_sTMP006Inst, TMP006_O_CONFIG,
-                          ~TMP006_CONFIG_EN_DRDY_PIN_M,
-                          TMP006_CONFIG_EN_DRDY_PIN, TMP006AppCallback,
-                          &g_sTMP006Inst);
-
-    //
-    // Wait for the DRDY enable I2C transaction to complete.
-    //
-    while((g_vui8DataFlag == 0) && (g_vui8ErrorFlag == 0))
-    {
-        //ROM_SysCtlSleep();
-    }
-
-    //
-    // If an error occurred call the error handler immediately.
-    //
-    if(g_vui8ErrorFlag)
-    {
-        TMP006AppErrorHandler(__FILE__, __LINE__);
-    }
-
-    //
-    // clear the data flag for next use.
-    //
-    g_vui8DataFlag = 0;
 
     /*
      * Following function configures the device to default state by cleaning
@@ -949,4 +986,151 @@ static void displayBanner()
 	UARTprintf(" Maker: Markel T. Robregado ");
 	UARTprintf("\n\r*******************************************************************************\n\r");
 	UARTprintf("\n\r\n\r");
+}
+
+static void configTmp006()
+{
+    //
+    // Initialize the TMP006
+    //
+    TMP006Init(&g_sTMP006Inst, &g_sI2CInst, TMP006_I2C_ADDRESS,
+               TMP006AppCallback, &g_sTMP006Inst);
+
+    //
+    // Put the processor to sleep while we wait for the I2C driver to
+    // indicate that the transaction is complete.
+    //
+    while((g_vui8DataFlag == 0) && (g_vui8ErrorFlag == 0))
+    {
+        //ROM_SysCtlSleep();
+    }
+
+    //
+    // If an error occurred call the error handler immediately.
+    //
+    if(g_vui8ErrorFlag)
+    {
+        TMP006AppErrorHandler(__FILE__, __LINE__);
+    }
+
+    //
+    // clear the data flag for next use.
+    //
+    g_vui8DataFlag = 0;
+
+    //
+    // Delay for 10 milliseconds for TMP006 reset to complete.
+    // Not explicitly required. Datasheet does not say how long a reset takes.
+    //
+    ROM_SysCtlDelay(ui32SysClock / (100 * 3));
+
+    //
+    // Enable the DRDY pin indication that a conversion is in progress.
+    //
+    TMP006ReadModifyWrite(&g_sTMP006Inst, TMP006_O_CONFIG,
+                          ~TMP006_CONFIG_EN_DRDY_PIN_M,
+                          TMP006_CONFIG_EN_DRDY_PIN, TMP006AppCallback,
+                          &g_sTMP006Inst);
+
+    //
+    // Wait for the DRDY enable I2C transaction to complete.
+    //
+    while((g_vui8DataFlag == 0) && (g_vui8ErrorFlag == 0))
+    {
+        //ROM_SysCtlSleep();
+    }
+
+    //
+    // If an error occurred call the error handler immediately.
+    //
+    if(g_vui8ErrorFlag)
+    {
+        TMP006AppErrorHandler(__FILE__, __LINE__);
+    }
+
+    //
+    // clear the data flag for next use.
+    //
+    g_vui8DataFlag = 0;
+}
+
+static void configBmp180()
+{
+    //
+    // Initialize the BMP180.
+    //
+    BMP180Init(&g_sBMP180Inst, &g_sI2CInst, BMP180_I2C_ADDRESS,
+               BMP180AppCallback, &g_sBMP180Inst);
+
+    //
+    // Wait for initialization callback to indicate reset request is complete.
+    //
+    while(g_vui8DataFlag == 0)
+    {
+        //
+        // Wait for I2C transactions to complete.
+        //
+    }
+
+    //
+    // Reset the data ready flag.
+    //
+    g_vui8DataFlag = 0;
+
+}
+
+static void configSht21()
+{
+    //
+    // Initialize the SHT21.
+    //
+    SHT21Init(&g_sSHT21Inst, &g_sI2CInst, SHT21_I2C_ADDRESS,
+            SHT21AppCallback, &g_sSHT21Inst);
+
+    //
+    // Wait for the I2C transactions to complete before moving forward.
+    //
+    SHT21AppI2CWait(__FILE__, __LINE__);
+
+    //
+    // Delay for 20 milliseconds for SHT21 reset to complete itself.
+    // Datasheet says reset can take as long 15 milliseconds.
+    //
+    ROM_SysCtlDelay(ui32SysClock / (50 * 3));
+}
+
+static void configIsl29023()
+{
+
+}
+
+//*****************************************************************************
+//
+// Function to wait for the SHT21 transactions to complete.
+//
+//*****************************************************************************
+void
+SHT21AppI2CWait(char *pcFilename, uint_fast32_t ui32Line)
+{
+    //
+    // Put the processor to sleep while we wait for the I2C driver to
+    // indicate that the transaction is complete.
+    //
+    while((g_vui8DataFlag == 0) && (g_vui8ErrorFlag == 0))
+    {
+        ROM_SysCtlSleep();
+    }
+
+    //
+    // If an error occurred call the error handler immediately.
+    //
+    if(g_vui8ErrorFlag)
+    {
+    	TMP006AppErrorHandler(pcFilename, ui32Line);
+    }
+
+    //
+    // clear the data flag for next use.
+    //
+    g_vui8DataFlag = 0;
 }
