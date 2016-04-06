@@ -1,0 +1,47 @@
+
+**** Build of configuration Debug for project wlan_station_exosite_write_read ****
+
+"C:\\ti\\ccsv6\\utils\\bin\\gmake" -k all 
+'Building file: ../cloud_demo.c'
+'Invoking: ARM Compiler'
+"C:/ti/ccsv6/tools/compiler/ti-cgt-arm_5.2.7/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi -me -Ooff --opt_for_speed=2 --include_path="C:/Users/richa/Documents/GitHub/wlan_station_exosite_write_read/wlan_station_exosite_write_read/exosite" --include_path="C:/ti/ccsv6/tools/compiler/ti-cgt-arm_5.2.7/include" --include_path="C:/Users/richa/Documents/GitHub/wlan_station_exosite_write_read/wlan_station_exosite_write_read" --include_path="C:/ti/TivaWare_C_Series-2.1.2.111" --include_path="C:/ti/TivaWare_C_Series-2.1.2.111/examples/boards/ek-tm4c1294xl" --include_path="C:/ti/CC3100SDK_1.2.0/cc3100-sdk/examples/common" --include_path="C:/ti/CC3100SDK_1.2.0/cc3100-sdk/simplelink/include" --include_path="C:/ti/CC3100SDK_1.2.0/cc3100-sdk/simplelink/source" --include_path="C:/ti/CC3100SDK_1.2.0/cc3100-sdk/platform/tiva-c-connected-launchpad" --include_path="C:/ti/TivaWare_C_Series-2.1.2.111/third_party/lwip-1.4.1/src/include" -g --gcc --define=TARGET_IS_TM4C129_RA0 --define=PART_TM4C1294NCPDT --define=ccs="ccs" --define=UART_BUFFERED --display_error_number --diag_warning=225 --diag_wrap=off --preproc_with_compile --preproc_dependency="cloud_demo.pp"  "../cloud_demo.c"
+"../cloud_demo.c", line 256: warning #177-D: subscript out of range
+"../cloud_demo.c", line 256: warning #176-D: expression has no effect
+"../cloud_demo.c", line 426: warning #179-D: variable "fAltitude" was declared but never referenced
+"../cloud_demo.c", line 552: warning #225-D: function "SHT21AppI2CWait" declared implicitly
+'Finished building: ../cloud_demo.c'
+' '
+'Building file: ../main.c'
+'Invoking: ARM Compiler'
+"C:/ti/ccsv6/tools/compiler/ti-cgt-arm_5.2.7/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi -me -Ooff --opt_for_speed=2 --include_path="C:/Users/richa/Documents/GitHub/wlan_station_exosite_write_read/wlan_station_exosite_write_read/exosite" --include_path="C:/ti/ccsv6/tools/compiler/ti-cgt-arm_5.2.7/include" --include_path="C:/Users/richa/Documents/GitHub/wlan_station_exosite_write_read/wlan_station_exosite_write_read" --include_path="C:/ti/TivaWare_C_Series-2.1.2.111" --include_path="C:/ti/TivaWare_C_Series-2.1.2.111/examples/boards/ek-tm4c1294xl" --include_path="C:/ti/CC3100SDK_1.2.0/cc3100-sdk/examples/common" --include_path="C:/ti/CC3100SDK_1.2.0/cc3100-sdk/simplelink/include" --include_path="C:/ti/CC3100SDK_1.2.0/cc3100-sdk/simplelink/source" --include_path="C:/ti/CC3100SDK_1.2.0/cc3100-sdk/platform/tiva-c-connected-launchpad" --include_path="C:/ti/TivaWare_C_Series-2.1.2.111/third_party/lwip-1.4.1/src/include" -g --gcc --define=TARGET_IS_TM4C129_RA0 --define=PART_TM4C1294NCPDT --define=ccs="ccs" --define=UART_BUFFERED --display_error_number --diag_warning=225 --diag_wrap=off --preproc_with_compile --preproc_dependency="main.pp"  "../main.c"
+"C:/ti/CC3100SDK_1.2.0/cc3100-sdk/platform/tiva-c-connected-launchpad/user.h", line 94: warning #48-D: incompatible redefinition of macro "bool" (declared at line 25 of "C:/ti/ccsv6/tools/compiler/ti-cgt-arm_5.2.7/include/stdbool.h")
+"../main.c", line 295: warning #112-D: statement is unreachable
+"../main.c", line 1093: warning #225-D: function "SHT21AppI2CWait" declared implicitly
+"../main.c", line 1113: warning #161-D: declaration is incompatible with previous "SHT21AppI2CWait" (declared at line 1093)
+"../main.c", line 1102: warning #179-D: function "configIsl29023" was declared but never referenced
+'Finished building: ../main.c'
+' '
+'Building file: C:/Users/richa/Documents/GitHub/wlan_station_exosite_write_read/wlan_station_exosite_write_read/exosite/exosite.c'
+'Invoking: ARM Compiler'
+"C:/ti/ccsv6/tools/compiler/ti-cgt-arm_5.2.7/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi -me -Ooff --opt_for_speed=2 --include_path="C:/Users/richa/Documents/GitHub/wlan_station_exosite_write_read/wlan_station_exosite_write_read/exosite" --include_path="C:/ti/ccsv6/tools/compiler/ti-cgt-arm_5.2.7/include" --include_path="C:/Users/richa/Documents/GitHub/wlan_station_exosite_write_read/wlan_station_exosite_write_read" --include_path="C:/ti/TivaWare_C_Series-2.1.2.111" --include_path="C:/ti/TivaWare_C_Series-2.1.2.111/examples/boards/ek-tm4c1294xl" --include_path="C:/ti/CC3100SDK_1.2.0/cc3100-sdk/examples/common" --include_path="C:/ti/CC3100SDK_1.2.0/cc3100-sdk/simplelink/include" --include_path="C:/ti/CC3100SDK_1.2.0/cc3100-sdk/simplelink/source" --include_path="C:/ti/CC3100SDK_1.2.0/cc3100-sdk/platform/tiva-c-connected-launchpad" --include_path="C:/ti/TivaWare_C_Series-2.1.2.111/third_party/lwip-1.4.1/src/include" -g --gcc --define=TARGET_IS_TM4C129_RA0 --define=PART_TM4C1294NCPDT --define=ccs="ccs" --define=UART_BUFFERED --display_error_number --diag_warning=225 --diag_wrap=off --preproc_with_compile --preproc_dependency="exosite/exosite.pp" --obj_directory="exosite"  "C:/Users/richa/Documents/GitHub/wlan_station_exosite_write_read/wlan_station_exosite_write_read/exosite/exosite.c"
+"C:/Users/richa/Documents/GitHub/wlan_station_exosite_write_read/wlan_station_exosite_write_read/exosite/exosite.c", line 805: warning #552-D: variable "connection_status" was set but never used
+"C:/Users/richa/Documents/GitHub/wlan_station_exosite_write_read/wlan_station_exosite_write_read/exosite/exosite.c", line 73: warning #179-D: variable "isSocketOpen" was declared but never referenced
+'Finished building: C:/Users/richa/Documents/GitHub/wlan_station_exosite_write_read/wlan_station_exosite_write_read/exosite/exosite.c'
+' '
+'Building target: wlan_station_exosite_write_read.out'
+'Invoking: ARM Linker'
+"C:/ti/ccsv6/tools/compiler/ti-cgt-arm_5.2.7/bin/armcl" -mv7M4 --code_state=16 --float_support=FPv4SPD16 --abi=eabi -me -Ooff --opt_for_speed=2 -g --gcc --define=TARGET_IS_TM4C129_RA0 --define=PART_TM4C1294NCPDT --define=ccs="ccs" --define=UART_BUFFERED --display_error_number --diag_warning=225 --diag_wrap=off -z -m"wlan_station_exosite_write_read.map" --heap_size=0 --stack_size=4096 -i"C:/ti/ccsv6/tools/compiler/ti-cgt-arm_5.2.7/lib" -i"C:/ti/ccsv6/tools/compiler/ti-cgt-arm_5.2.7/include" --reread_libs --warn_sections --display_error_number --diag_wrap=off --xml_link_info="wlan_station_exosite_write_read_linkInfo.xml" --rom_model -o "wlan_station_exosite_write_read.out" "./cloud_demo.obj" "./main.obj" "./tm4c1294ncpdt_startup_ccs.obj" "./utils/uartstdio.obj" "./spi/spi.obj" "./simplelink/source/device.obj" "./simplelink/source/driver.obj" "./simplelink/source/flowcont.obj" "./simplelink/source/fs.obj" "./simplelink/source/netapp.obj" "./simplelink/source/netcfg.obj" "./simplelink/source/nonos.obj" "./simplelink/source/socket.obj" "./simplelink/source/spawn.obj" "./simplelink/source/wlan.obj" "./exosite/exosite.obj" "./exosite/exosite_pal.obj" "./drivers/buttons.obj" "./drivers/pinout.obj" "./board/board.obj" "../tm4c1294ncpdt.cmd"  -l"libc.a" -l"C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/ccs/Debug/sensorlib.lib" -l"C:/ti/TivaWare_C_Series-2.1.2.111/driverlib/ccs/Debug/driverlib.lib" 
+<Linking>
+'Finished building target: wlan_station_exosite_write_read.out'
+' '
+"C:/ti/ccsv6/utils/tiobj2bin/tiobj2bin" "wlan_station_exosite_write_read.out" "wlan_station_exosite_write_read.bin" "C:/ti/ccsv6/tools/compiler/ti-cgt-arm_5.2.7/bin/armofd" "C:/ti/ccsv6/tools/compiler/ti-cgt-arm_5.2.7/bin/armhex" "C:/ti/ccsv6/utils/tiobj2bin/mkhex4bin"
+' '
+
+**** Build Finished ****
+
+**** Build of configuration Debug for project wlan_station_exosite_write_read ****
+
+"C:\\ti\\ccsv6\\utils\\bin\\gmake" -k all 
+gmake: Nothing to be done for `all'.
+
+**** Build Finished ****

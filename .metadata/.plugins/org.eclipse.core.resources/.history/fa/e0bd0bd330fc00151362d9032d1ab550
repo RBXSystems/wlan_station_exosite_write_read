@@ -1,0 +1,39 @@
+################################################################################
+# Automatically-generated file. Do not edit!
+################################################################################
+
+# Add inputs and outputs from these tool invocations to the build variables 
+CMD_SRCS += \
+../tm4c1294ncpdt.cmd 
+
+C_SRCS += \
+../cloud_demo.c \
+../main.c \
+../tm4c1294ncpdt_startup_ccs.c 
+
+OBJS += \
+./cloud_demo.obj \
+./main.obj \
+./tm4c1294ncpdt_startup_ccs.obj 
+
+C_DEPS += \
+./cloud_demo.pp \
+./main.pp \
+./tm4c1294ncpdt_startup_ccs.pp 
+
+C_DEPS__QUOTED += \
+"cloud_demo.pp" \
+"main.pp" \
+"tm4c1294ncpdt_startup_ccs.pp" 
+
+OBJS__QUOTED += \
+"cloud_demo.obj" \
+"main.obj" \
+"tm4c1294ncpdt_startup_ccs.obj" 
+
+C_SRCS__QUOTED += \
+"../cloud_demo.c" \
+"../main.c" \
+"../tm4c1294ncpdt_startup_ccs.c" 
+
+
