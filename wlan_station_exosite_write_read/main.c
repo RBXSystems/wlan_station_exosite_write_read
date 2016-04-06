@@ -461,6 +461,7 @@ void SimpleLinkWlanEventHandler(SlWlanEvent_t *pWlanEvent)
         }
         break;
 
+        // Reset the system
         SysCtlReset();
     }
 }
