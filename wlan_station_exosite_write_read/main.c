@@ -49,7 +49,7 @@
  *
  * Maker/Author - Markel T. Robregado
  * Modifications - Richard Carpenter
- * Modification Details : Updated clock speed to 120000000MHz
+ * Modification Details : Updated clock speed to 120MHz
  * Added sensor data for BMP180 (pressure and temperature)
  * Added sensor data for SHT21 (humidity and temperature)
  *
