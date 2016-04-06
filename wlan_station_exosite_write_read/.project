@@ -28,22 +28,22 @@
 		<link>
 			<name>drivers</name>
 			<type>2</type>
-			<location>C:/EK-TM4C129/examples/boards/ek-tm4c1294xl/drivers</location>
+			<location>C:/Users/richa/Documents/GitHub/wlan_station_exosite_write_read/wlan_station_exosite_write_read/drivers</location>
 		</link>
 		<link>
 			<name>exosite</name>
 			<type>2</type>
-			<location>C:/EK-TM4C129/exosite</location>
+			<location>C:/Users/richa/Documents/GitHub/wlan_station_exosite_write_read/wlan_station_exosite_write_read/exosite</location>
 		</link>
 		<link>
 			<name>simplelink</name>
 			<type>2</type>
-			<location>C:/ti/CC3100SDK_1.1.0/cc3100-sdk/simplelink</location>
+			<location>C:/ti/CC3100SDK_1.2.0/cc3100-sdk/simplelink</location>
 		</link>
 		<link>
 			<name>utils</name>
 			<type>2</type>
-			<location>C:/EK-TM4C129/utils</location>
+			<location>C:/Users/richa/Documents/GitHub/wlan_station_exosite_write_read/wlan_station_exosite_write_read/utils</location>
 		</link>
 		<link>
 			<name>board/board.c</name>
@@ -69,15 +69,15 @@
 	<variableList>
 		<variable>
 			<name>CC3100_SDK_ROOT</name>
-			<value>$%7BPARENT-4-ORIGINAL_PROJECT_ROOT%7D</value>
+			<value>file:/C:/ti/CC3100SDK_1.2.0/cc3100-sdk</value>
 		</variable>
 		<variable>
 			<name>ORIGINAL_PROJECT_ROOT</name>
-			<value>file:/C:/ti/CC3100SDK_1.1.0/cc3100-sdk/platform/tiva-c-connected-launchpad/example_project_ccs/getting_started_with_wlan_station</value>
+			<value>file:/C:/Users/richa/Documents/GitHub/wlan_station_exosite_write_read/wlan_station_exosite_write_read</value>
 		</variable>
 		<variable>
 			<name>TIVAWARE_ROOT</name>
-			<value>file:/C:/EK-TM4C129</value>
+			<value>file:/C:/ti/TivaWare_C_Series-2.1.2.111</value>
 		</variable>
 	</variableList>
 </projectDescription>

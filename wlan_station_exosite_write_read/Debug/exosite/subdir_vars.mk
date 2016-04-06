@@ -4,8 +4,8 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-C:/EK-TM4C129/exosite/exosite.c \
-C:/EK-TM4C129/exosite/exosite_pal.c 
+../exosite/exosite.c \
+../exosite/exosite_pal.c 
 
 OBJS += \
 ./exosite/exosite.obj \
@@ -24,7 +24,7 @@ OBJS__QUOTED += \
 "exosite\exosite_pal.obj" 
 
 C_SRCS__QUOTED += \
-"C:/EK-TM4C129/exosite/exosite.c" \
-"C:/EK-TM4C129/exosite/exosite_pal.c" 
+"../exosite/exosite.c" \
+"../exosite/exosite_pal.c" 
 
 

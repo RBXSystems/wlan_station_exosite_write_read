@@ -4,7 +4,7 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-C:/EK-TM4C129/utils/uartstdio.c 
+../utils/uartstdio.c 
 
 OBJS += \
 ./utils/uartstdio.obj 
@@ -19,6 +19,6 @@ OBJS__QUOTED += \
 "utils\uartstdio.obj" 
 
 C_SRCS__QUOTED += \
-"C:/EK-TM4C129/utils/uartstdio.c" 
+"../utils/uartstdio.c" 
 
 

@@ -1,11 +1,11 @@
 # FIXED
 
-exosite/exosite.obj: C:/EK-TM4C129/exosite/exosite.c
-exosite/exosite.obj: C:/EK-TM4C129/exosite/exosite_pal.h
-exosite/exosite.obj: C:/CCSV6/ccsv6/tools/compiler/ti-cgt-arm_5.2.2/include/stdint.h
-exosite/exosite.obj: C:/EK-TM4C129/exosite/exosite.h
+exosite/exosite.obj: C:/Users/richa/Documents/GitHub/wlan_station_exosite_write_read/wlan_station_exosite_write_read/exosite/exosite.c
+exosite/exosite.obj: C:/Users/richa/Documents/GitHub/wlan_station_exosite_write_read/wlan_station_exosite_write_read/exosite/exosite_pal.h
+exosite/exosite.obj: C:/ti/ccsv6/tools/compiler/ti-cgt-arm_5.2.7/include/stdint.h
+exosite/exosite.obj: C:/Users/richa/Documents/GitHub/wlan_station_exosite_write_read/wlan_station_exosite_write_read/exosite/exosite.h
 
-C:/EK-TM4C129/exosite/exosite.c: 
-C:/EK-TM4C129/exosite/exosite_pal.h: 
-C:/CCSV6/ccsv6/tools/compiler/ti-cgt-arm_5.2.2/include/stdint.h: 
-C:/EK-TM4C129/exosite/exosite.h: 
+C:/Users/richa/Documents/GitHub/wlan_station_exosite_write_read/wlan_station_exosite_write_read/exosite/exosite.c: 
+C:/Users/richa/Documents/GitHub/wlan_station_exosite_write_read/wlan_station_exosite_write_read/exosite/exosite_pal.h: 
+C:/ti/ccsv6/tools/compiler/ti-cgt-arm_5.2.7/include/stdint.h: 
+C:/Users/richa/Documents/GitHub/wlan_station_exosite_write_read/wlan_station_exosite_write_read/exosite/exosite.h: 
