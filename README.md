@@ -8,6 +8,7 @@ Write and Read data to Exosite Cloud using Tiva Connected Launchpad + CC3100 BP 
  * Added Sensor data for BMP180 (Pressure and Temperature) and (SHT21 Humidity and Temperature)
  * Created functions for reading sensor data (for adding more sensors)
  * Increased Clock frequency to 120MHz
+ * Added ISL29023 Luminosity Sensor
  *                        
  * Device Setup: Tiva Connected Launchpad + CC3100 Booster pack + Sensor Hub Booster Pack
  *
