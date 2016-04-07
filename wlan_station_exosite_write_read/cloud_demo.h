@@ -24,7 +24,12 @@ void cloud_demo(void);
 void readTmp006Data(void);
 void readBmp180Data(void);
 void readSht21Data(void);
+void readIsl29023Data(void);
 
 void SHT21AppCallback(void *pvCallbackData, uint_fast8_t ui8Status);
+void ISL29023AppCallback(void *pvCallbackData, uint_fast8_t ui8Status);
+//void ISL29023AppAdjustRange(tISL29023 *pInst);
+
+volatile unsigned long g_vui8IntensityFlag;
 
 #endif /* CLOUD_DEMO_H_ */

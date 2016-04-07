@@ -81,12 +81,14 @@
 #include "sensorlib/hw_tmp006.h"
 #include "sensorlib/hw_bmp180.h"
 #include "sensorlib/hw_sht21.h"
+#include "sensorlib/hw_isl29023.h"
 
 #include "sensorlib/i2cm_drv.h"
 
 #include "sensorlib/tmp006.h"
 #include "sensorlib/bmp180.h"
 #include "sensorlib/sht21.h"
+#include "sensorlib/isl29023.h"
 
 #define APPLICATION_VERSION "1.1.0"
 
@@ -135,6 +137,21 @@ typedef enum{
 //*****************************************************************************
 #define SHT21_I2C_ADDRESS  0x40
 
+//*****************************************************************************
+//
+// Define ISL29023 I2C Address.
+//
+//*****************************************************************************
+#define ISL29023_I2C_ADDRESS    0x44
+
+//*****************************************************************************
+//
+// The system tick rate expressed both as ticks per second and a millisecond
+// period.
+//
+//*****************************************************************************
+#define SYSTICKS_PER_SECOND     1
+#define SYSTICK_PERIOD_MS       (1000 / SYSTICKS_PER_SECOND)
 /*
  * GLOBAL VARIABLES -- Start
  */
@@ -165,10 +182,18 @@ tBMP180 g_sBMP180Inst;
 //*****************************************************************************
 tSHT21 g_sSHT21Inst;
 
+//*****************************************************************************
+//
+// Global instance structure for the ISL29023 sensor driver.
+//
+//*****************************************************************************
+tISL29023 g_sISL29023Inst;
+
 // Global new data flag to alert main that TMP006 data is ready.
 volatile uint_fast8_t g_vui8DataFlag;
 // Global new error flag to store the error condition if encountered.
 volatile uint_fast8_t g_vui8ErrorFlag;
+volatile unsigned long g_vui8IntensityFlag;
 /*
  * GLOBAL VARIABLES -- End
  */
@@ -264,6 +289,31 @@ SHT21AppCallback(void *pvCallbackData, uint_fast8_t ui8Status)
 
 //*****************************************************************************
 //
+// ISL29023 Sensor callback function.  Called at the end of ISL29023 sensor
+// driver transactions. This is called from I2C interrupt context. Therefore,
+// we just set a flag and let main do the bulk of the computations and display.
+//
+//*****************************************************************************
+void
+ISL29023AppCallback(void *pvCallbackData, uint_fast8_t ui8Status)
+{
+    //
+    // If the transaction succeeded set the data flag to indicate to
+    // application that this transaction is complete and data may be ready.
+    //
+    if(ui8Status == I2CM_STATUS_SUCCESS)
+    {
+        g_vui8DataFlag = 1;
+    }
+
+    //
+    // Store the most recent status in case it was an error condition
+    //
+    g_vui8ErrorFlag = ui8Status;
+}
+
+//*****************************************************************************
+//
 // TMP006 Application error handler.
 //
 //*****************************************************************************
@@ -282,6 +332,11 @@ TMP006AppErrorHandler(char *pcFilename, uint_fast32_t ui32Line)
     // Return terminal color to normal
     //
     UARTprintf("\033[0m");
+
+    //
+    // Turn off the SysTick to prevent it from requesting additional reads.
+    //
+    ROM_SysTickDisable();
 
 	//
     // Go to sleep wait for interventions.  A more robust application could
@@ -345,6 +400,52 @@ IntHandlerGPIOPortH(void)
         //
         TMP006DataRead(&g_sTMP006Inst, TMP006AppCallback, &g_sTMP006Inst);
     }
+}
+
+//*****************************************************************************
+//
+// Called by the NVIC as a result of GPIO port E interrupt event. For this
+// application GPIO port E pin 5 is the interrupt line for the ISL29023
+//
+// For this application this is a very low priority interrupt, we want to
+// get notification of light values outside our thresholds but it is not the
+// most important thing.
+//
+//*****************************************************************************
+void
+GPIOPortEIntHandler(void)
+{
+    unsigned long ulStatus;
+
+    ulStatus = GPIOIntStatus(GPIO_PORTE_BASE, true);
+
+    //
+    // Clear all the pin interrupts that are set
+    //
+    GPIOIntClear(GPIO_PORTE_BASE, ulStatus);
+
+    if(ulStatus & GPIO_PIN_5)
+    {
+        //
+        // ISL29023 has indicated that the light level has crossed outside of
+        // the intensity threshold levels set in INT_LT and INT_HT registers.
+        //
+        g_vui8IntensityFlag = 1;
+    }
+}
+
+//*****************************************************************************
+//
+// Interrupt handler for the system tick counter.
+//
+//*****************************************************************************
+void
+SysTickIntHandler(void)
+{
+    //
+    // Go get the latest data from the sensor.
+    //
+    ISL29023DataRead(&g_sISL29023Inst, ISL29023AppCallback, &g_sISL29023Inst);
 }
 
 //*****************************************************************************
@@ -458,11 +559,11 @@ void SimpleLinkWlanEventHandler(SlWlanEvent_t *pWlanEvent)
         default:
         {
             UARTprintf(" [WLAN EVENT] Unexpected event \n\r");
+
+            // Reset the system
+            SysCtlReset();
         }
         break;
-
-        // Reset the system
-        SysCtlReset();
     }
 }
 
@@ -680,6 +781,8 @@ int main(int argc, char** argv)
     configBmp180();
 
     configSht21();
+
+    configIsl29023();
 
 	//
 	// Setup the interrupts for the timer timeouts.
@@ -1105,6 +1208,121 @@ static void configSht21()
 
 static void configIsl29023()
 {
+    //float fAmbient;
+    //int32_t i32IntegerPart, i32FractionPart;
+    uint8_t ui8Mask;
+
+    //
+    // Configure and Enable the GPIO interrupt. Used for INT signal from the
+    // ISL29023
+    //
+    ROM_GPIOPinTypeGPIOInput(GPIO_PORTE_BASE, GPIO_PIN_5);
+    GPIOIntEnable(GPIO_PORTE_BASE, GPIO_PIN_5);
+    ROM_GPIOIntTypeSet(GPIO_PORTE_BASE, GPIO_PIN_5, GPIO_FALLING_EDGE);
+    ROM_IntEnable(INT_GPIOE);
+
+    //
+    // Keep only some parts of the systems running while in sleep mode.
+    // GPIOE is for the ISL29023 interrupt pin.
+    // UART0 is the virtual serial port
+    // I2C7 is the I2C interface to the ISL29023
+    //
+    // For BoosterPack 2 change this to I2C8.
+    //
+    ROM_SysCtlPeripheralClockGating(true);
+    ROM_SysCtlPeripheralSleepEnable(SYSCTL_PERIPH_GPIOE);
+    ROM_SysCtlPeripheralSleepEnable(SYSCTL_PERIPH_UART0);
+    ROM_SysCtlPeripheralSleepEnable(SYSCTL_PERIPH_I2C7);
+
+    //
+    // Configure desired interrupt priorities.  Setting the I2C interrupt to be
+    // of more priority than SysTick and the GPIO interrupt means those
+    // interrupt routines can use the I2CM_DRV Application context does not use
+    // I2CM_DRV API and GPIO and SysTick are at the same priority level. This
+    // prevents re-entrancy problems with I2CM_DRV but keeps the MCU in sleep
+    // state as much as possible. UART is at least priority so it can operate
+    // in the background.
+    //
+    // For BoosterPack 2 use I2C8.
+    //
+    ROM_IntPrioritySet(INT_I2C7, 0x00);
+    ROM_IntPrioritySet(FAULT_SYSTICK, 0x40);
+    ROM_IntPrioritySet(INT_GPIOE, 0x80);
+    ROM_IntPrioritySet(INT_UART0, 0x80);
+
+    //
+    // Enable interrupts to the processor.
+    //
+    // ROM_IntMasterEnable();
+
+    //
+    // Initialize I2C7 peripheral.
+    //
+    // For BoosterPack 2 use I2C8.
+    //
+    I2CMInit(&g_sI2CInst, I2C7_BASE, INT_I2C7, 0xff, 0xff, ui32SysClock);
+
+    //
+    // Initialize the ISL29023 Driver.
+    //
+    ISL29023Init(&g_sISL29023Inst, &g_sI2CInst, ISL29023_I2C_ADDRESS,
+                 ISL29023AppCallback, &g_sISL29023Inst);
+
+    //
+    // Wait for transaction to complete
+    //
+    ISL29023AppI2CWait(__FILE__, __LINE__);
+
+    //
+    // Configure the ISL29023 to measure ambient light continuously. Set a 8
+    // sample persistence before the INT pin is asserted. Clears the INT flag.
+    // Persistence setting of 8 is sufficient to ignore camera flashes.
+    //
+    ui8Mask = (ISL29023_CMD_I_OP_MODE_M | ISL29023_CMD_I_INT_PERSIST_M |
+               ISL29023_CMD_I_INT_FLAG_M);
+    ISL29023ReadModifyWrite(&g_sISL29023Inst, ISL29023_O_CMD_I, ~ui8Mask,
+                            (ISL29023_CMD_I_OP_MODE_ALS_CONT |
+                             ISL29023_CMD_I_INT_PERSIST_8),
+                            ISL29023AppCallback, &g_sISL29023Inst);
+
+    //
+    // Wait for transaction to complete
+    //
+    ISL29023AppI2CWait(__FILE__, __LINE__);
+
+    //
+    // Configure the upper threshold to 80% of maximum value
+    //
+    g_sISL29023Inst.pui8Data[1] = 0xCC;
+    g_sISL29023Inst.pui8Data[2] = 0xCC;
+    ISL29023Write(&g_sISL29023Inst, ISL29023_O_INT_HT_LSB,
+                  g_sISL29023Inst.pui8Data, 2, ISL29023AppCallback,
+                  &g_sISL29023Inst);
+
+    //
+    // Wait for transaction to complete
+    //
+    ISL29023AppI2CWait(__FILE__, __LINE__);
+
+    //
+    // Configure the lower threshold to 20% of maximum value
+    //
+    g_sISL29023Inst.pui8Data[1] = 0x33;
+    g_sISL29023Inst.pui8Data[2] = 0x33;
+    ISL29023Write(&g_sISL29023Inst, ISL29023_O_INT_LT_LSB,
+                  g_sISL29023Inst.pui8Data, 2, ISL29023AppCallback,
+                  &g_sISL29023Inst);
+    //
+    // Wait for transaction to complete
+    //
+    ISL29023AppI2CWait(__FILE__, __LINE__);
+
+    //
+    //Configure and enable SysTick Timer
+    //
+    ROM_SysTickPeriodSet(ui32SysClock / SYSTICKS_PER_SECOND);
+    ROM_SysTickIntEnable();
+    ROM_SysTickEnable();
 
 }
 
@@ -1123,6 +1341,39 @@ SHT21AppI2CWait(char *pcFilename, uint_fast32_t ui32Line)
     while((g_vui8DataFlag == 0) && (g_vui8ErrorFlag == 0))
     {
         ROM_SysCtlSleep();
+    }
+
+    //
+    // If an error occurred call the error handler immediately.
+    //
+    if(g_vui8ErrorFlag)
+    {
+    	TMP006AppErrorHandler(pcFilename, ui32Line);
+    }
+
+    //
+    // clear the data flag for next use.
+    //
+    g_vui8DataFlag = 0;
+}
+
+//*****************************************************************************
+//
+// Function to wait for the ISL29023 transactions to complete.
+//
+//*****************************************************************************
+void
+ISL29023AppI2CWait(char *pcFilename, uint_fast32_t ui32Line)
+{
+    //
+    // Put the processor to sleep while we wait for the I2C driver to
+    // indicate that the transaction is complete.
+    //
+    while((g_vui8DataFlag == 0) && (g_vui8ErrorFlag == 0))
+    {
+        //
+        // Do Nothing
+        //
     }
 
     //

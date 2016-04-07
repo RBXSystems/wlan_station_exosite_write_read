@@ -44,10 +44,12 @@ main.obj: ../drivers/buttons.h
 main.obj: C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/hw_tmp006.h
 main.obj: C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/hw_bmp180.h
 main.obj: C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/hw_sht21.h
+main.obj: C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/hw_isl29023.h
 main.obj: C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/i2cm_drv.h
 main.obj: C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/tmp006.h
 main.obj: C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/bmp180.h
 main.obj: C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/sht21.h
+main.obj: C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/isl29023.h
 
 ../main.c: 
 C:/ti/ccsv6/tools/compiler/ti-cgt-arm_5.2.7/include/stdint.h: 
@@ -93,7 +95,9 @@ C:/ti/ccsv6/tools/compiler/ti-cgt-arm_5.2.7/include/stdarg.h:
 C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/hw_tmp006.h: 
 C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/hw_bmp180.h: 
 C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/hw_sht21.h: 
+C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/hw_isl29023.h: 
 C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/i2cm_drv.h: 
 C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/tmp006.h: 
 C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/bmp180.h: 
 C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/sht21.h: 
+C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/isl29023.h: 

@@ -27,6 +27,7 @@ cloud_demo.obj: C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/tmp006.h
 cloud_demo.obj: C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/bmp180.h
 cloud_demo.obj: C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/sht21.h
 cloud_demo.obj: C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/isl29023.h
+cloud_demo.obj: C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/hw_isl29023.h
 
 ../cloud_demo.c: 
 C:/ti/ccsv6/tools/compiler/ti-cgt-arm_5.2.7/include/stdio.h: 
@@ -55,3 +56,4 @@ C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/tmp006.h:
 C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/bmp180.h: 
 C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/sht21.h: 
 C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/isl29023.h: 
+C:/ti/TivaWare_C_Series-2.1.2.111/sensorlib/hw_isl29023.h: 

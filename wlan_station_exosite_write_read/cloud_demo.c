@@ -34,6 +34,7 @@
 #include "sensorlib/bmp180.h"
 #include "sensorlib/sht21.h"
 #include "sensorlib/isl29023.h"
+#include "sensorlib/hw_isl29023.h"
 
 #define TEMP_ALIAS          "tmp006"
 #define BMPT_ALIAS           "bmp180_T"
@@ -46,10 +47,10 @@
 #define SW1_ALIAS           "usrsw1"
 #define SW2_ALIAS           "usrsw2"
 
-#define TEMP_ALIAS_LENGTH          12
-#define BMP_ALIAS_LENGTH           16
-#define SHT_ALIAS_LENGTH           16
-#define SHT_ALIAS_LENGTH           16
+#define TEMP_ALIAS_LENGTH          6
+#define BMP_ALIAS_LENGTH           8
+#define SHT_ALIAS_LENGTH           7
+#define ISL_ALIAS_LENGTH           8
 #define LED2_ALIAS_LENGTH          5
 #define LED3_ALIAS_LENGTH          5
 #define SW1_ALIAS_LENGTH           6
@@ -77,7 +78,7 @@ extern tSHT21 g_sSHT21Inst;
 // Global instance structure for the ISL29023 sensor driver.
 //
 //*****************************************************************************
-tISL29023 g_sISL29023Inst;
+extern tISL29023 g_sISL29023Inst;
 
 extern unsigned long ui32SysClock;
 extern unsigned long g_Status;
@@ -94,6 +95,22 @@ extern void TMP006AppErrorHandler(char *pcFilename, uint_fast32_t ui32Line);
 
 char post_str[512];
 int post_len = 0;
+
+//*****************************************************************************
+//
+// Constants to hold the floating point version of the thresholds for each
+// range setting. Numbers represent an 81% and 19 % threshold levels. This
+// creates a +/- 1% hysteresis band between range adjustments.
+//
+//*****************************************************************************
+const float g_fThresholdHigh[4] =
+{
+    810.0f, 3240.0f, 12960.0f, 64000.0f
+};
+const float g_fThresholdLow[4] =
+{
+    0.0f, 760.0f, 3040.0f, 12160.0f
+};
 
 /*****************************************************************************
 *
@@ -262,13 +279,16 @@ void Report_Sensors(void)
 
 	readSht21Data();
 
+	readIsl29023Data();
+
 
 	//UARTprintf(" Exosite Write: %s\r\n", post_str);
+
+	//Exosite Write: usrsw1=0&usrsw2=0&tmp006=24.93&bmp180_T=23.850&bmp180_P=100266.20&sht21_H=47.764&sht21_T=16.63&isl29023=63.980
+
 	UARTprintf(".");
 
 	exosite_write(post_str, post_len);
-
-
 }
 
 /*****************************************************************************
@@ -649,6 +669,9 @@ void readSht21Data(void)
 	post_len++;
 	post_len += snprintf(&post_str[post_len], 10, "%2d.%02d", i32IntegerPart, i32FractionPart);
 
+	post_len = strlen(post_str);
+	post_str[post_len] = '&';
+	post_len++;
 
     //
     // Print the temperature as integer and fraction parts.
@@ -663,11 +686,153 @@ void readSht21Data(void)
     ROM_SysCtlDelay(ui32SysClock / 3);
 }
 
-//*****************************************************************************
-//
-// SHT21 Sensor callback function.  Called at the end of SHT21 sensor driver
-// transactions. This is called from I2C interrupt context. Therefore, we just
-// set a flag and let main do the bulk of the computations and display.
-//
-//*****************************************************************************
+void readIsl29023Data(void)
+{
+    float fAmbient;
+    int32_t i32IntegerPart, i32FractionPart;
 
+    //
+    // Wait for the DataFlag which is set when a DataRead is complete.
+    // DataRead is started in the SysTick Interrupt Handler.
+    if(g_vui8DataFlag)
+    {
+        g_vui8DataFlag = 0;
+
+        //
+        // Get a local floating point copy of the latest light data
+        //
+        ISL29023DataLightVisibleGetFloat(&g_sISL29023Inst, &fAmbient);
+
+        //
+        // Perform the conversion from float to a printable set of integers
+        //
+        i32IntegerPart = (int32_t)fAmbient;
+        i32FractionPart = (int32_t)(fAmbient * 1000.0f);
+        i32FractionPart = i32FractionPart - (i32IntegerPart * 1000);
+        if(i32FractionPart < 0)
+        {
+            i32FractionPart *= -1;
+        }
+
+    	memcpy(&post_str[post_len], ISL_ALIAS, ISL_ALIAS_LENGTH);
+    	post_len += strlen(ISL_ALIAS);
+    	post_str[post_len] = '=';
+    	post_len++;
+    	post_len += snprintf(&post_str[post_len], 10, "%2d.%02d", i32IntegerPart, i32FractionPart);
+
+
+        //
+        // Print the temperature as integer and fraction parts.
+        //
+        //UARTprintf("Visible Lux: %3d.%03d\n", i32IntegerPart,
+        //           i32FractionPart);
+
+        //
+        // Check if the intensity of light has crossed a threshold. If so
+        // then adjust range of sensor readings to track intensity.
+        //
+        if(g_vui8IntensityFlag)
+        {
+            //
+            // Disable the low priority interrupts leaving only the I2C
+            // interrupt enabled.
+            //
+            ROM_IntPriorityMaskSet(0x40);
+
+            //
+            // Reset the intensity trigger flag.
+            //
+            g_vui8IntensityFlag = 0;
+
+            //
+            // Adjust the lux range.
+            //
+            ISL29023AppAdjustRange(&g_sISL29023Inst);
+
+            //
+            // Now we must manually clear the flag in the ISL29023
+            // register.
+            //
+            ISL29023Read(&g_sISL29023Inst, ISL29023_O_CMD_I,
+                         g_sISL29023Inst.pui8Data, 1, ISL29023AppCallback,
+                         &g_sISL29023Inst);
+
+            //
+            // Wait for transaction to complete
+            //
+            ISL29023AppI2CWait(__FILE__, __LINE__);
+
+            //
+            // Disable priority masking so all interrupts are enabled.
+            //
+            ROM_IntPriorityMaskSet(0);
+        }
+    }
+}
+
+//*****************************************************************************
+//
+// Intensity and Range Tracking Function.  This adjusts the range and interrupt
+// thresholds as needed.  Uses an 80/20 rule. If light is greather then 80% of
+// maximum value in this range then go to next range up. If less than 20% of
+// potential value in this range go the next range down.
+//
+//*****************************************************************************
+void
+ISL29023AppAdjustRange(tISL29023 *pInst)
+{
+    float fAmbient;
+    uint8_t ui8NewRange;
+
+    ui8NewRange = g_sISL29023Inst.ui8Range;
+
+    //
+    // Get a local floating point copy of the latest light data
+    //
+    ISL29023DataLightVisibleGetFloat(&g_sISL29023Inst, &fAmbient);
+
+    //
+    // Check if we crossed the upper threshold.
+    //
+    if(fAmbient > g_fThresholdHigh[g_sISL29023Inst.ui8Range])
+    {
+        //
+        // The current intensity is over our threshold so adjsut the range
+        // accordingly
+        //
+        if(g_sISL29023Inst.ui8Range < ISL29023_CMD_II_RANGE_64K)
+        {
+            ui8NewRange = g_sISL29023Inst.ui8Range + 1;
+        }
+    }
+
+    //
+    // Check if we crossed the lower threshold
+    //
+    if(fAmbient < g_fThresholdLow[g_sISL29023Inst.ui8Range])
+    {
+        //
+        // If possible go to the next lower range setting and reconfig the
+        // thresholds.
+        //
+        if(g_sISL29023Inst.ui8Range > ISL29023_CMD_II_RANGE_1K)
+        {
+            ui8NewRange = g_sISL29023Inst.ui8Range - 1;
+        }
+    }
+
+    //
+    // If the desired range value changed then send the new range to the sensor
+    //
+    if(ui8NewRange != g_sISL29023Inst.ui8Range)
+    {
+        ISL29023ReadModifyWrite(&g_sISL29023Inst, ISL29023_O_CMD_II,
+                                ~ISL29023_CMD_II_RANGE_M, ui8NewRange,
+                                ISL29023AppCallback, &g_sISL29023Inst);
+
+        //
+        // Wait for transaction to complete
+        //
+        ISL29023AppI2CWait(__FILE__, __LINE__);
+    }
+}
