@@ -445,7 +445,7 @@ SysTickIntHandler(void)
     //
     // Go get the latest data from the sensor.
     //
-    ISL29023DataRead(&g_sISL29023Inst, ISL29023AppCallback, &g_sISL29023Inst);
+    //ISL29023DataRead(&g_sISL29023Inst, ISL29023AppCallback, &g_sISL29023Inst);
 }
 
 //*****************************************************************************
@@ -491,6 +491,11 @@ Timer1BaseIntHandler(void)  // function for name change
     // called when the read is complete.
     //
     BMP180DataRead(&g_sBMP180Inst, BMP180AppCallback, &g_sBMP180Inst);
+
+    //
+    // Go get the latest data from the sensor.
+    //
+    ISL29023DataRead(&g_sISL29023Inst, ISL29023AppCallback, &g_sISL29023Inst);
 }
 
 
@@ -1320,9 +1325,9 @@ static void configIsl29023()
     //
     //Configure and enable SysTick Timer
     //
-    ROM_SysTickPeriodSet(ui32SysClock / SYSTICKS_PER_SECOND);
-    ROM_SysTickIntEnable();
-    ROM_SysTickEnable();
+    //ROM_SysTickPeriodSet(ui32SysClock / SYSTICKS_PER_SECOND);
+    //ROM_SysTickIntEnable();
+    //ROM_SysTickEnable();
 
 }
 

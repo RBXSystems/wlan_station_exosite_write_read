@@ -47,14 +47,14 @@
 #define SW1_ALIAS           "usrsw1"
 #define SW2_ALIAS           "usrsw2"
 
-#define TEMP_ALIAS_LENGTH          6
-#define BMP_ALIAS_LENGTH           8
-#define SHT_ALIAS_LENGTH           7
-#define ISL_ALIAS_LENGTH           8
-#define LED2_ALIAS_LENGTH          5
-#define LED3_ALIAS_LENGTH          5
-#define SW1_ALIAS_LENGTH           6
-#define SW2_ALIAS_LENGTH           6
+#define TEMP_ALIAS_LENGTH          20
+#define BMP_ALIAS_LENGTH           20
+#define SHT_ALIAS_LENGTH           20
+#define ISL_ALIAS_LENGTH           20
+#define LED2_ALIAS_LENGTH          20
+#define LED3_ALIAS_LENGTH          20
+#define SW1_ALIAS_LENGTH           20
+#define SW2_ALIAS_LENGTH           20
 
 // Global instance structure for the TMP006 sensor driver.
 extern tTMP006 g_sTMP006Inst;
@@ -270,7 +270,7 @@ void Cloud_Read(void)
 *****************************************************************************/
 void Report_Sensors(void)
 {
-	post_str[512];
+	post_str[0]="";
 	post_len = 0;
 
 	readTmp006Data();
@@ -282,7 +282,7 @@ void Report_Sensors(void)
 	readIsl29023Data();
 
 
-	//UARTprintf(" Exosite Write: %s\r\n", post_str);
+	UARTprintf(" Exosite Write: %s\r\n", post_str);
 
 	//Exosite Write: usrsw1=0&usrsw2=0&tmp006=24.93&bmp180_T=23.850&bmp180_P=100266.20&sht21_H=47.764&sht21_T=16.63&isl29023=63.980
 
@@ -443,7 +443,7 @@ void readTmp006Data(void)
 
 void readBmp180Data(void)
 {
-    float fTemperature, fPressure, fAltitude;
+    float fTemperature, fPressure;// fAltitude;
     int32_t i32IntegerPart;
     int32_t i32FractionPart;
 
